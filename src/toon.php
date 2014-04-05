@@ -1,6 +1,7 @@
 <?php
 
 include('UUID.php');
+require 'vendor/autoload.php';
 
 class Toon {
 
@@ -19,23 +20,22 @@ class Toon {
     /*
     * Do initial login handshake with Toon backend to get agreement data
     */
-    $formdata = array(
+    $payload = array(
       "username" => $this->user,
       "password" => $this->pass
     );
 
-    $fjson = json_encode($formdata);
+    $r = Requests::post('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/login', array(), $payload);
 
-    $r = $this->sendToonRequest('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/login', $fjson);
+    $this->sessiondata = json_decode($r->body);
 
-    $this->sessiondata = json_decode($r);
 
     /*
     * Now we do the actual handshake with the Toon backend
     * based on the agreement details we got from the initial login
     */
 
-    $formdata = array(
+    $payload = array(
     "clientId" => $this->sessiondata->{'clientId'},
     "clientIdChecksum" => $this->sessiondata->{'clientIdChecksum'},
     "agreementId" => $this->sessiondata->{'agreements'}[0]->{'agreementId'},
@@ -43,9 +43,7 @@ class Toon {
     "random" => UUID::v4()
     );
 
-    $fjson = json_encode($formdata);
-
-    $r = $this->sendToonRequest('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/start', $fjson);
+    $r = Requests::post('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/start', array(), $payload);
   }
 
   public function logout() {
@@ -54,30 +52,34 @@ class Toon {
     * before it starts spitting out 500 errors
     */
 
-    $formdata = array(
+    $payload = array(
       "clientId" => $this->sessiondata->{'clientId'},
       "clientIdChecksum" => $this->sessiondata->{'clientIdChecksum'},
       "random" => UUID::v4()
     );
 
-    $fjson = json_encode($formdata);
-
-    $r = $this->sendToonRequest('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/logout', $fjson);
+    $r = Requests::post('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/logout', array(), $payload);
     $this->toonstate = NULL;
     $this->sessiondata = NULL;
   }
 
   public function retrieve_toon_state() {
-    $formdata = array(
+    $payload = array(
       "clientId" => $this->sessiondata->{'clientId'},
       "clientIdChecksum" => $this->sessiondata->{'clientIdChecksum'},
       "random" => UUID::v4()
     );
 
-    $fjson = json_encode($formdata);
-
-    $r = $this->sendToonRequest('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/retrieveToonState', $fjson);
-    $this->toonstate = json_decode($r);
+    $clientId = $this->sessiondata->{'clientId'};
+    $clientIdChecksum = $this->sessiondata->{'clientIdChecksum'};
+    $random = UUID::v4();
+    $uriPref = 'https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/retrieveToonState?clientId=' . $clientId . '&clientIdChecksum=' . $clientIdChecksum . '&random=' . $random;
+    $headers = array('Accept' => 'application/json');
+    $r = Requests::get($uriPref, $headers);
+    print($r->body);
+    print('</br>');
+    print($r->status_code);
+    $this->toonstate = json_decode($r->body);
   }
 
   public function refresh_toon_state() {
@@ -92,7 +94,8 @@ class Toon {
 
   public function get_power_usage() {
     $this->retrieve_toon_state();
-    return $this->toonstate->{'powerUsage'};
+    $powerusage = $this->toonstate->{'powerUsage'};
+    return $powerusage;
   }
 
   public function get_thermostat_info() {
@@ -107,16 +110,14 @@ class Toon {
 
   public function set_thermostat($temperature) {
     $tTemp = $temperature * 100;
-    $formdata = array(
+    $payload = array(
       "clientId" => $this->sessiondata->{'clientId'},
       "clientIdChecksum" => $this->sessiondata->{'clientIdChecksum'},
       "value" => $tTemp,
       "random" => UUID::v4()
     );
 
-    $fjson = json_encode($formdata);
-
-    $r = $this->sendToonRequest('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/setPoint', $fjson);
+    $r = Requests::post('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/setPoint', array(), $payload);
 }
 
   public function get_program_state() {
@@ -132,7 +133,7 @@ class Toon {
     * State three (3)
     */
 
-    $formdata = array(
+    $payload = array(
       "clientId" => $this->sessiondata->{'clientId'},
       "clientIdChecksum" => $this->sessiondata->{'clientIdChecksum'},
       "state" => 2,
@@ -140,19 +141,6 @@ class Toon {
       "random" => UUID::v4()
     );
 
-    $fjson = json_encode($formdata);
-
-    $r = $this->sendToonRequest('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/schemeState', $fjson);
-  }
-
-  private function sendToonRequest($URI, $json) {
-    $ch = curl_init($URI);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-    $toonResponse = curl_exec($ch);
-
-    return $toonResponse;
+    $r = Requests::post('https://toonopafstand.eneco.nl/toonMobileBackendWeb/client/auth/schemeState', array(), $payload);
   }
 }
