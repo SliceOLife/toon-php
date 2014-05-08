@@ -135,7 +135,7 @@ class Toon {
     $formdata = array(
       "clientId" => $this->sessiondata->{'clientId'},
       "clientIdChecksum" => $this->sessiondata->{'clientIdChecksum'},
-      "state" => 2,
+      "state" => 1,
       "temperatureState" => $targetstate,
       "random" => UUID::v4()
     );
