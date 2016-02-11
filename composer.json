@@ -1,0 +1,21 @@
+{
+  "name": "sliceoflife/toon-php",
+  "description": "PHP library to interface with Eneco Toon intelligent thermostat. Port of https://github.com/rvdm/toon",
+  "license": "MIT",
+  "keywords": ["toon"],
+  "authors": [
+    {
+      "name": "Jordi",
+      "email": "me@jordify.nl"
+    }
+  ],
+  "require": {},
+  "require-dev": {
+    "phpunit/phpunit": "4.0.*"
+  },
+  "autoload": {
+    "psr-4": {
+      "SliceOfLife\\toon-php\\": "src"
+    }
+  }
+}
