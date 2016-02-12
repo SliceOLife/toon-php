@@ -1,4 +1,4 @@
-<?php
+<?php namespace SliceOfLife\toonphp;
 
 include('UUID.php');
 require 'vendor/autoload.php';
